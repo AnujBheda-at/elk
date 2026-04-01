@@ -29,21 +29,17 @@
     }
 
     // After a column operation the grid re-renders and all header DOM elements
-    // are replaced. Re-focus the header for `fieldName` once it reappears so
-    // EUI's arrow-key navigation continues to work.
+    // are replaced. We delay the refocus until EUI has finished re-initialising
+    // its internal column-index mapping (~300ms after render). Focusing too
+    // early causes EUI to register the wrong colIndex, which makes subsequent
+    // arrow-key navigation skip a column.
     function refocusHeader(fieldName) {
-        const selector = `[data-test-subj="dataGridHeaderCell-${fieldName}"] .euiDataGridHeaderCell__button`;
-        const existing = document.querySelector(selector);
-        if (existing) { existing.focus(); return; }
-
-        const observer = new MutationObserver(() => {
-            const btn = document.querySelector(selector);
-            if (!btn) return;
-            observer.disconnect();
-            btn.focus();
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-        setTimeout(() => observer.disconnect(), 3000);
+        setTimeout(() => {
+            const btn = document.querySelector(
+                `[data-test-subj="dataGridHeaderCell-${fieldName}"] .euiDataGridHeaderCell__button`
+            );
+            btn?.focus();
+        }, 350);
     }
 
     function moveColumn(fieldName, direction) {
