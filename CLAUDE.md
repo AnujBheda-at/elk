@@ -2,6 +2,10 @@
 
 This repo hosts Tampermonkey userscripts for tweaking the ELK/OpenSearch stack.
 
+## Git workflow
+
+Never run `git push` without explicit approval from the user. Commit freely, but always ask before pushing.
+
 ## Adding a new script
 
 1. Add the `.js` file to the repo root.
