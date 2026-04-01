@@ -29,17 +29,20 @@
     }
 
     // After a column operation the grid re-renders and all header DOM elements
-    // are replaced. We delay the refocus until EUI has finished re-initialising
-    // its internal column-index mapping (~300ms after render). Focusing too
-    // early causes EUI to register the wrong colIndex, which makes subsequent
-    // arrow-key navigation skip a column.
+    // are replaced. Re-focus the header for `fieldName` once it reappears.
     function refocusHeader(fieldName) {
-        setTimeout(() => {
-            const btn = document.querySelector(
-                `[data-test-subj="dataGridHeaderCell-${fieldName}"] .euiDataGridHeaderCell__button`
-            );
-            btn?.focus();
-        }, 350);
+        const selector = `[data-test-subj="dataGridHeaderCell-${fieldName}"] .euiDataGridHeaderCell__button`;
+        const existing = document.querySelector(selector);
+        if (existing) { existing.click(); return; } // click so EUI registers focusedCell
+
+        const observer = new MutationObserver(() => {
+            const btn = document.querySelector(selector);
+            if (!btn) return;
+            observer.disconnect();
+            btn.click(); // click so EUI registers focusedCell
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+        setTimeout(() => observer.disconnect(), 3000);
     }
 
     function moveColumn(fieldName, direction) {
@@ -93,14 +96,17 @@
         const headerBtn = header.querySelector('.euiDataGridHeaderCell__button');
         if (!headerBtn) return;
 
-        // Suppress the EUI dropdown on click — just focus the button so
-        // keyboard shortcuts (Shift+←/→/X) are immediately usable.
+        // Let EUI see every click so it properly updates its focusedCell state
+        // (which drives arrow-key navigation). Close the dropdown it opens by
+        // dispatching Escape after React has had 2 animation frames to render it.
         headerBtn.addEventListener('click', e => {
-            if (e.target.closest('.col-mgr-btn')) return; // let action buttons through
-            e.stopPropagation();
-            e.preventDefault();
-            headerBtn.focus();
-        }, true); // capture phase so it runs before EUI's own handler
+            if (e.target.closest('.col-mgr-btn')) return;
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                headerBtn.dispatchEvent(
+                    new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+                );
+            }));
+        });
 
         // Keyboard shortcuts
         headerBtn.addEventListener('keydown', e => {
