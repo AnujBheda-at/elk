@@ -64,7 +64,13 @@ grunt admin:log_fetch:fetchMatchingLogMessageFromHost --hostname=<hostname> --cl
 
 ### `opensearch-make-model-ids-clickable.js`
 
-Makes model IDs in the OpenSearch data grid clickable. Detects ID prefixes (`trc`, `act`, `req`, `pgl`, `pro`, `wkr`, `app`, `usr`) and linkifies them — trace/action/etc. IDs open a pre-filtered OpenSearch discover view; `app`/`usr` IDs open the support panel.
+Makes model IDs in the OpenSearch data grid clickable. Detects ID prefixes and linkifies them:
+
+| Prefix | Links to |
+|--------|----------|
+| `trc`, `act`, `req`, `pgl`, `pro`, `wkr` | OpenSearch Discover filtered by that ID |
+| `app`, `usr` | Support panel |
+| `pbd`, `pag` | Support panel at `applicationId#pageBundleId` / `applicationId#pageId` (resolved from the same row; falls back to unlinked if `applicationId` column is not visible) |
 
 Uses CSS styling + click delegation rather than DOM mutation, which correctly handles EUI DataGrid's virtual scrolling (cell recycling no longer causes stale/overwritten links).
 
