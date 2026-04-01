@@ -2,7 +2,7 @@
 // @name         OpenSearch - Column manager
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  Adds ←/→/× buttons (and Shift+←/→/X keyboard shortcuts) to column headers for quick reorder and remove. Manages columns via URL hash — no React internals. Width preservation is best-effort via ResizeObserver.
+// @description  Adds ←/→/× buttons (and Shift+←/→/X keyboard shortcuts) to column headers for quick reorder and remove. Manages columns via URL hash — no React internals.
 // @author       anujbheda
 // @match        https://opensearch-applogs.shadowbox.cloud/*
 // @match        https://opensearch-applogs.staging-shadowbox.cloud/*
@@ -28,7 +28,6 @@
     }
 
     function setColumns(cols) {
-        captureWidths(); // snapshot widths before the grid re-renders
         location.hash = location.hash.replace(
             /columns:!\([^)]*\)/,
             `columns:!(${cols.join(',')})`
@@ -47,43 +46,6 @@
 
     function removeColumn(fieldName) {
         setColumns(getColumns().filter(c => c !== fieldName));
-    }
-
-    // ─── Width tracking ─────────────────────────────────────────────────────────
-    //
-    // EUI DataGrid controls column widths via React state so inline style
-    // overrides may be cleared on re-render. Best-effort: capture before any
-    // column operation, re-apply after the grid rebuilds.
-
-    const savedWidths = new Map();
-    let applyingWidths = false;
-
-    function captureWidths() {
-        document.querySelectorAll('.euiDataGridHeaderCell[data-test-subj^="dataGridHeaderCell-"]').forEach(cell => {
-            const w = cell.offsetWidth;
-            if (w > 20) savedWidths.set(fieldOf(cell), w);
-        });
-    }
-
-    function applyWidths() {
-        if (!savedWidths.size || applyingWidths) return;
-        applyingWidths = true;
-        document.querySelectorAll('.euiDataGridHeaderCell[data-test-subj^="dataGridHeaderCell-"]').forEach(cell => {
-            const w = savedWidths.get(fieldOf(cell));
-            if (!w) return;
-            cell.style.setProperty('width',     `${w}px`, 'important');
-            cell.style.setProperty('min-width', `${w}px`, 'important');
-            cell.style.setProperty('max-width', `${w}px`, 'important');
-        });
-        window.dispatchEvent(new Event('resize'));
-        setTimeout(() => { applyingWidths = false; }, 500);
-    }
-
-    function setupResizeTracking() {
-        const ro = new ResizeObserver(() => {
-            if (!applyingWidths) captureWidths();
-        });
-        document.querySelectorAll('.euiDataGridHeaderCell').forEach(h => ro.observe(h));
     }
 
     // ─── Button injection ────────────────────────────────────────────────────────
@@ -140,9 +102,9 @@
         // Keyboard shortcuts when the header button has focus
         headerBtn.addEventListener('keydown', e => {
             if (!e.shiftKey) return;
-            if      (e.key === 'ArrowLeft')          { e.preventDefault(); moveColumn(fieldName, 'left');  }
-            else if (e.key === 'ArrowRight')          { e.preventDefault(); moveColumn(fieldName, 'right'); }
-            else if (e.key.toLowerCase() === 'x')    { e.preventDefault(); removeColumn(fieldName);        }
+            if      (e.key === 'ArrowLeft')            { e.preventDefault(); moveColumn(fieldName, 'left');  }
+            else if (e.key === 'ArrowRight')            { e.preventDefault(); moveColumn(fieldName, 'right'); }
+            else if (e.key.toLowerCase() === 'x')      { e.preventDefault(); removeColumn(fieldName);        }
         });
 
         const sortIcon = headerBtn.querySelector('.euiDataGridHeaderCell__icon');
@@ -156,7 +118,7 @@
 
     // ─── Observers ───────────────────────────────────────────────────────────────
 
-    let injectTimer, widthTimer;
+    let injectTimer;
 
     const mutationObserver = new MutationObserver(mutations => {
         const hasNewHeaders = mutations.some(m =>
@@ -170,9 +132,7 @@
         if (!hasNewHeaders) return;
 
         clearTimeout(injectTimer);
-        clearTimeout(widthTimer);
-        injectTimer = setTimeout(() => { injectAllButtons(); setupResizeTracking(); }, 300);
-        widthTimer  = setTimeout(applyWidths, 600);
+        injectTimer = setTimeout(injectAllButtons, 300);
     });
 
     // ─── Init ────────────────────────────────────────────────────────────────────
@@ -182,9 +142,6 @@
         clearInterval(waitForGrid);
 
         injectAllButtons();
-        captureWidths();
-        setupResizeTracking();
-
         mutationObserver.observe(document.body, { childList: true, subtree: true });
     }, 500);
 })();

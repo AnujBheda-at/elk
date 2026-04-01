@@ -84,7 +84,7 @@ Uses CSS styling + click delegation rather than DOM mutation, which correctly ha
 
 Adds **← → ×** buttons to each column header for one-click reorder and remove. Also supports keyboard shortcuts when a header is focused: `Shift+←` / `Shift+→` to move, `Shift+X` to remove.
 
-Column operations go through `location.hash` (the URL parameter OpenSearch Discover uses as source of truth for column config) rather than React internals, so they're resilient to EUI/OpenSearch upgrades. Width preservation is included as best-effort via `ResizeObserver`.
+Column operations go through `location.hash` (the URL parameter OpenSearch Discover uses as source of truth for column config) rather than React internals, so they're resilient to EUI/OpenSearch upgrades.
 
 **Matches:**
 - `https://opensearch-applogs.shadowbox.cloud/*`
