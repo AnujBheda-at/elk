@@ -89,3 +89,17 @@ Column operations go through `location.hash` (the URL parameter OpenSearch Disco
 **Matches:**
 - `https://opensearch-applogs.shadowbox.cloud/*`
 - `https://opensearch-applogs.staging-shadowbox.cloud/*`
+
+![Column manager buttons in header](assets/opensearch-column-manager.png)
+
+---
+
+### `opensearch-field-search.js`
+
+**Cmd+J** (Mac) / **Ctrl+J** (Win) opens a search modal to quickly find and add fields to the grid. Already-added fields are shown with an `added` badge. Uses `location.hash` to add columns, same as the column manager.
+
+**Matches:**
+- `https://opensearch-applogs.shadowbox.cloud/*`
+- `https://opensearch-applogs.staging-shadowbox.cloud/*`
+
+![Field search modal](assets/opensearch-field-search.png)
