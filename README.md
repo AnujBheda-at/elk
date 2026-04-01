@@ -59,3 +59,15 @@ Adds a **"Copy Query Params"** button to the OpenSearch filter bar. Copies the c
 ```
 grunt admin:log_fetch:fetchMatchingLogMessageFromHost --hostname=<hostname> --cluster=<cluster> --pod=<pod> --search='crud request log line'
 ```
+
+---
+
+### `opensearch-make-model-ids-clickable.js`
+
+Makes model IDs in the OpenSearch data grid clickable. Detects ID prefixes (`trc`, `act`, `req`, `pgl`, `pro`, `wkr`, `app`, `usr`) and linkifies them — trace/action/etc. IDs open a pre-filtered OpenSearch discover view; `app`/`usr` IDs open the support panel.
+
+Uses CSS styling + click delegation rather than DOM mutation, which correctly handles EUI DataGrid's virtual scrolling (cell recycling no longer causes stale/overwritten links).
+
+**Matches:**
+- `https://opensearch-applogs.shadowbox.cloud/*`
+- `https://opensearch-applogs.staging-shadowbox.cloud/*`
