@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         OpenSearch - Column manager
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Adds ←/→/× buttons (and Shift+←/→/X keyboard shortcuts) to column headers for quick reorder and remove. Manages columns via URL hash — no React internals.
+// @version      1.1
+// @description  Adds ←/→/× buttons (and Shift+←/→/X keyboard shortcuts) to column headers. Actions go through the native EUI dropdown so EUI manages its own state.
 // @author       anujbheda
 // @match        https://opensearch-applogs.shadowbox.cloud/*
 // @match        https://opensearch-applogs.staging-shadowbox.cloud/*
@@ -13,40 +13,47 @@
 (function() {
     'use strict';
 
-    // ─── Column management via URL hash ────────────────────────────────────────
+    // ─── Column actions via native EUI dropdown ──────────────────────────────────
     //
-    // OpenSearch Discover stores column config in the URL hash:
-    //   #/?_g=(...)&_a=(columns:!(col1,col2,...),...)
-    //
-    // Updating location.hash triggers the app's hashchange listener, which
-    // re-renders the grid — no React internals or Angular services needed.
+    // Each button opens the column header's native dropdown and clicks the
+    // matching menu item. This lets EUI manage its own state rather than us
+    // reaching into the URL hash or React internals.
 
-    function getColumns() {
-        const m = location.hash.match(/columns:!\(([^)]*)\)/);
-        if (!m || !m[1]) return [];
-        return m[1].split(',').map(c => c.trim()).filter(Boolean);
+    async function triggerDropdownAction(fieldName, actionTexts) {
+        const header = document.querySelector(`[data-test-subj="dataGridHeaderCell-${fieldName}"]`);
+        if (!header) return;
+
+        const headerBtn = header.querySelector('.euiDataGridHeaderCell__button');
+        if (!headerBtn) return;
+
+        // Open the native dropdown
+        headerBtn.click();
+
+        // Wait for the EUI popover to render
+        await new Promise(r => setTimeout(r, 150));
+
+        // Find the matching action in the now-visible popover.
+        // EUI renders popovers as portals appended to <body>, so we search the
+        // whole document but skip our own injected buttons and header cells.
+        for (const btn of document.querySelectorAll('button')) {
+            if (!btn.offsetParent) continue;                                   // not visible
+            if (btn.classList.contains('col-mgr-btn')) continue;               // skip our buttons
+            if (btn.closest('[data-test-subj^="dataGridHeaderCell-"]')) continue; // skip header buttons
+            const text = btn.textContent.trim().toLowerCase();
+            if (actionTexts.some(t => text === t.toLowerCase())) {
+                btn.click();
+                return;
+            }
+        }
+
+        // Close the dropdown if the expected action wasn't found
+        document.body.click();
+        console.warn(`[column-manager] Dropdown action not found: ${actionTexts}`);
     }
 
-    function setColumns(cols) {
-        location.hash = location.hash.replace(
-            /columns:!\([^)]*\)/,
-            `columns:!(${cols.join(',')})`
-        );
-    }
-
-    function moveColumn(fieldName, direction) {
-        const cols = getColumns();
-        const idx = cols.indexOf(fieldName);
-        if (idx === -1) return;
-        const newIdx = direction === 'left' ? idx - 1 : idx + 1;
-        if (newIdx < 0 || newIdx >= cols.length) return;
-        [cols[idx], cols[newIdx]] = [cols[newIdx], cols[idx]];
-        setColumns(cols);
-    }
-
-    function removeColumn(fieldName) {
-        setColumns(getColumns().filter(c => c !== fieldName));
-    }
+    const moveLeft  = f => triggerDropdownAction(f, ['Move left']);
+    const moveRight = f => triggerDropdownAction(f, ['Move right']);
+    const remove    = f => triggerDropdownAction(f, ['Hide column', 'Remove column', 'Hide']);
 
     // ─── Button injection ────────────────────────────────────────────────────────
 
@@ -95,16 +102,16 @@
 
         const container = document.createElement('span');
         container.className = 'col-mgr-btns';
-        container.appendChild(mkBtn('←', 'col-mgr-btn-move',   `Move "${fieldName}" left  (Shift+←)`, () => moveColumn(fieldName, 'left')));
-        container.appendChild(mkBtn('→', 'col-mgr-btn-move',   `Move "${fieldName}" right (Shift+→)`, () => moveColumn(fieldName, 'right')));
-        container.appendChild(mkBtn('×', 'col-mgr-btn-remove', `Remove "${fieldName}" (Shift+X)`,     () => removeColumn(fieldName)));
+        container.appendChild(mkBtn('←', 'col-mgr-btn-move',   `Move "${fieldName}" left  (Shift+←)`, () => moveLeft(fieldName)));
+        container.appendChild(mkBtn('→', 'col-mgr-btn-move',   `Move "${fieldName}" right (Shift+→)`, () => moveRight(fieldName)));
+        container.appendChild(mkBtn('×', 'col-mgr-btn-remove', `Remove "${fieldName}" (Shift+X)`,     () => remove(fieldName)));
 
         // Keyboard shortcuts when the header button has focus
         headerBtn.addEventListener('keydown', e => {
             if (!e.shiftKey) return;
-            if      (e.key === 'ArrowLeft')            { e.preventDefault(); moveColumn(fieldName, 'left');  }
-            else if (e.key === 'ArrowRight')            { e.preventDefault(); moveColumn(fieldName, 'right'); }
-            else if (e.key.toLowerCase() === 'x')      { e.preventDefault(); removeColumn(fieldName);        }
+            if      (e.key === 'ArrowLeft')          { e.preventDefault(); moveLeft(fieldName);  }
+            else if (e.key === 'ArrowRight')          { e.preventDefault(); moveRight(fieldName); }
+            else if (e.key.toLowerCase() === 'x')    { e.preventDefault(); remove(fieldName);    }
         });
 
         const sortIcon = headerBtn.querySelector('.euiDataGridHeaderCell__icon');
@@ -130,7 +137,6 @@
             )
         );
         if (!hasNewHeaders) return;
-
         clearTimeout(injectTimer);
         injectTimer = setTimeout(injectAllButtons, 300);
     });
@@ -140,7 +146,6 @@
     const waitForGrid = setInterval(() => {
         if (!document.querySelector('.euiDataGrid')) return;
         clearInterval(waitForGrid);
-
         injectAllButtons();
         mutationObserver.observe(document.body, { childList: true, subtree: true });
     }, 500);
