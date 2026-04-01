@@ -94,20 +94,40 @@
         if (!headerBtn) return;
 
         // Suppress the EUI dropdown on click — just focus the button so
-        // keyboard shortcuts (Shift+←/→/X) are immediately usable.
+        // keyboard shortcuts are immediately usable.
         headerBtn.addEventListener('click', e => {
-            if (e.target.closest('.col-mgr-btn')) return; // let action buttons through
+            if (e.target.closest('.col-mgr-btn')) return;
             e.stopPropagation();
             e.preventDefault();
             headerBtn.focus();
-        }, true); // capture phase so it runs before EUI's own handler
+        }, true);
 
-        // Keyboard shortcuts
         headerBtn.addEventListener('keydown', e => {
-            if (!e.shiftKey) return;
-            if      (e.key === 'ArrowLeft')          { e.preventDefault(); moveColumn(fieldName, 'left');  }
-            else if (e.key === 'ArrowRight')          { e.preventDefault(); moveColumn(fieldName, 'right'); }
-            else if (e.key.toLowerCase() === 'x')    { e.preventDefault(); removeColumn(fieldName);        }
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+                if (!e.shiftKey) return;
+                if (e.key.toLowerCase() === 'x') { e.preventDefault(); removeColumn(fieldName); }
+                return;
+            }
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const cols = getColumns();
+            const idx = cols.indexOf(fieldName);
+
+            if (e.shiftKey) {
+                // Shift+Arrow: move the column
+                const newIdx = e.key === 'ArrowLeft' ? idx - 1 : idx + 1;
+                if (newIdx >= 0 && newIdx < cols.length) moveColumn(fieldName, e.key === 'ArrowLeft' ? 'left' : 'right');
+            } else {
+                // Plain Arrow: navigate to the adjacent header
+                const newIdx = e.key === 'ArrowLeft' ? idx - 1 : idx + 1;
+                if (newIdx < 0 || newIdx >= cols.length) return;
+                const nextBtn = document.querySelector(
+                    `[data-test-subj="dataGridHeaderCell-${cols[newIdx]}"] .euiDataGridHeaderCell__button`
+                );
+                nextBtn?.focus();
+            }
         });
 
         const mkBtn = (text, cls, title, fn) => {

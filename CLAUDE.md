@@ -4,7 +4,9 @@ This repo hosts Tampermonkey userscripts for tweaking the ELK/OpenSearch stack.
 
 ## Git workflow
 
-Never run `git push` without explicit approval from the user. Commit freely, but always ask before pushing.
+Never run `git push` without explicit approval from the user.
+
+Never run `git commit` without explicit approval from the user. Make code changes, then show what you've done and ask before committing.
 
 ## Adding a new script
 
