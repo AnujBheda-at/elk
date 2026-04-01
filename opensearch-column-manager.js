@@ -28,6 +28,24 @@
         );
     }
 
+    // After a column operation the grid re-renders and all header DOM elements
+    // are replaced. Re-focus the header for `fieldName` once it reappears so
+    // EUI's arrow-key navigation continues to work.
+    function refocusHeader(fieldName) {
+        const selector = `[data-test-subj="dataGridHeaderCell-${fieldName}"] .euiDataGridHeaderCell__button`;
+        const existing = document.querySelector(selector);
+        if (existing) { existing.focus(); return; }
+
+        const observer = new MutationObserver(() => {
+            const btn = document.querySelector(selector);
+            if (!btn) return;
+            observer.disconnect();
+            btn.focus();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+        setTimeout(() => observer.disconnect(), 3000);
+    }
+
     function moveColumn(fieldName, direction) {
         const cols = getColumns();
         const idx = cols.indexOf(fieldName);
@@ -36,6 +54,7 @@
         if (newIdx < 0 || newIdx >= cols.length) return;
         [cols[idx], cols[newIdx]] = [cols[newIdx], cols[idx]];
         setColumns(cols);
+        refocusHeader(fieldName);
     }
 
     function removeColumn(fieldName) {
