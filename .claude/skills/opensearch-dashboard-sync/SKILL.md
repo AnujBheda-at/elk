@@ -32,6 +32,86 @@ python3 dashboards/bin/osd_common.py --selftest <env>
 A green response means cookies are live and the saved-objects API is
 reachable.
 
+## Builder library (`osd_builder.py`)
+
+For scripted dashboard creation or mutation, use `dashboards/bin/osd_builder.py`
+rather than hand-rolling boilerplate. It provides agg builders, params builders,
+vis state composers, and API helpers.
+
+### Design contract — flexibility first
+
+**Every factory function returns a plain Python dict. Mutate it freely before
+passing it downstream.** There is no DSL, no builder chain, no objects — just
+dicts that match the OSD wire format.
+
+```python
+from osd_builder import (
+    count, avg, percentiles, date_histo, terms, filters_agg,
+    line_vis_state, histogram_vis_state, horizontal_bar_vis_state,
+    create_viz, create_heading, add_panels_to_dashboard,
+)
+from osd_common import OsdClient
+
+client = OsdClient("staging")
+
+# Build aggs, compose vis state, mutate as needed, then create
+aggs = [count("1"), date_histo("2"), terms("3", field="applicationId", size=10)]
+state = line_vis_state("Calls by app", aggs, y_title="calls")
+
+# Want legend on left? Mutate the params dict:
+state["params"]["legendPosition"] = "left"
+
+# Want a custom label on the terms bucket?
+state["aggs"][2]["params"]["customLabel"] = "App"
+
+# Want a second split grouping? Append to aggs:
+state["aggs"].append(terms("4", field="userId", size=5, schema="group"))
+
+viz_id = create_viz(client, "Calls by app", "description", query, state)
+```
+
+### When a factory falls short
+
+If a factory function doesn't expose something you need, pick one:
+
+1. **Mutate the returned dict directly** — always works, no friction, right for one-off needs.
+2. **Update the factory** — add the parameter properly. Preferred when the need will recur or when the mutation is subtle enough to warrant hiding behind a named parameter.
+
+Do not work around a rigid factory with inline JSON strings or `json.loads` hacks.
+Update the factory instead so the next caller benefits.
+
+### Available factories
+
+| Category | Functions |
+| -------- | --------- |
+| Agg builders | `count`, `avg`, `sum_`, `percentiles`, `date_histo`, `terms`, `filters_agg` |
+| Params builders | `line_params`, `histogram_params`, `horizontal_bar_params` |
+| Vis state | `line_vis_state`, `histogram_vis_state`, `horizontal_bar_vis_state`, `markdown_vis_state` |
+| API helpers | `create_viz`, `create_heading`, `add_panels_to_dashboard` |
+
+### Section headings with descriptions
+
+Use `create_heading(client, label, description)` to add a Markdown viz as a
+section header. The `description` renders as a second line. Use `##` for main
+sections, `###` for sub-sections — just pass the full markdown string:
+
+```python
+# sub-heading: pass raw markdown instead of using create_heading
+state = markdown_vis_state("_heading_sub", "### Sub-section title\nExplanation here.")
+```
+
+### Adding panels to an existing dashboard
+
+`add_panels_to_dashboard(client, dashboard_id, panels)` handles the
+fetch → mutate panelsJSON → PUT cycle. The grid is 48 columns wide:
+
+```python
+add_panels_to_dashboard(client, DASHBOARD_ID, [
+    {"viz_id": viz_a, "x": 0,  "y": 40, "w": 24, "h": 15, "panel_index": "panel_5"},
+    {"viz_id": viz_b, "x": 24, "y": 40, "w": 24, "h": 15, "panel_index": "panel_6"},
+])
+```
+
 ## Everyday workflow
 
 ### Export existing dashboard → local file
