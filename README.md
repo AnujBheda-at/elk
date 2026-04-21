@@ -1,6 +1,12 @@
 # elk
 
-A collection of Tampermonkey userscripts for tweaking the ELK/OpenSearch stack.
+A collection of Tampermonkey userscripts for tweaking the ELK/OpenSearch stack, plus version-controlled OpenSearch Dashboards saved objects.
+
+## Dashboards
+
+OpenSearch Dashboards saved objects (dashboards + visualizations) exported as NDJSON and versioned under [`dashboards/`](dashboards/). Helpers under `dashboards/bin/` handle export, diff, and import against alpha / staging / prod. Authoring sharp edges are captured in the `opensearch-dashboard-sync` Claude skill at [`.claude/skills/opensearch-dashboard-sync/`](.claude/skills/opensearch-dashboard-sync/).
+
+Auth reuses the encrypted cookie cache from the hyperbase-worktree `opensearch_query` CLI — log in once per env with `./bin/opensearch_query --env <env> login` from that repo, then scripts in this one pick up the cookies.
 
 ## Scripts
 
