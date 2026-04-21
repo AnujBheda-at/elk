@@ -20,7 +20,7 @@ Quick reference
 Agg builders      → count, avg, sum_, percentiles, date_histo, terms, filters_agg
 Params builders   → line_params, histogram_params, horizontal_bar_params
 Vis state         → line_vis_state, histogram_vis_state, horizontal_bar_vis_state,
-                    markdown_vis_state
+                    table_vis_state, markdown_vis_state
 API helpers       → create_viz, create_heading, add_panels_to_dashboard
 """
 from __future__ import annotations
@@ -262,6 +262,35 @@ def horizontal_bar_vis_state(
     return {
         "title": title, "type": "horizontal_bar", "aggs": aggs,
         "params": horizontal_bar_params(y_title),
+    }
+
+
+def table_vis_state(title: str, aggs: list[dict], per_page: int = 10) -> dict:
+    """
+    Data table: metric + one or more split-row terms aggs.
+    For split rows use terms() with schema="bucket" (the default).
+    For the metric use count() or any metric agg with schema="metric".
+
+    Example — three-level breakdown:
+        table_vis_state("CRUD Failures", [
+            count("1"),
+            terms("2", "modelClassName", size=50, schema="bucket"),
+            terms("3", "apiName",        size=10, schema="bucket"),
+            terms("4", "action",         size=50, schema="bucket"),
+        ])
+    """
+    return {
+        "title": title,
+        "type": "table",
+        "aggs": aggs,
+        "params": {
+            "perPage": per_page,
+            "showPartialRows": False,
+            "showMetricsAtAllLevels": False,
+            "showTotal": False,
+            "totalFunc": "sum",
+            "percentageCol": "",
+        },
     }
 
 
