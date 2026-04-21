@@ -32,6 +32,32 @@ python3 dashboards/bin/osd_common.py --selftest <env>
 A green response means cookies are live and the saved-objects API is
 reachable.
 
+## Updating an existing visualization (new session rule)
+
+**Before mutating any existing saved object in a new session, always GET it
+from prod first.** The NDJSON in git may be stale and the live object may have
+drifted (UI edits, prior session changes not yet committed, etc.).
+
+```python
+# Correct pattern — pull live state, mutate, PUT back
+resp = client.get(f"/api/saved_objects/visualization/{viz_id}")
+attrs = resp["body"]["attributes"]
+vs = json.loads(attrs["visState"])
+
+# mutate vs as needed ...
+
+attrs["visState"] = json.dumps(vs)
+client.put(f"/api/saved_objects/visualization/{viz_id}", {
+    "attributes": attrs,
+    "references": [{"name": INDEX_REF_NAME, "type": "index-pattern", "id": INDEX_PATTERN_ID}],
+})
+```
+
+Always use `env="prod"` as the source of truth for existing objects. After
+mutating, export from prod, diff, and commit. Never reconstruct a viz from the
+NDJSON alone when the intent is to update an existing one — the live object has
+the authoritative state.
+
 ## Builder library (`osd_builder.py`)
 
 For scripted dashboard creation or mutation, use `dashboards/bin/osd_builder.py`
