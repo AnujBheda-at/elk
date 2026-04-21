@@ -2,10 +2,12 @@
 
 WIP dashboard for observing the MCP service's tool-call traffic.
 
-| Env | Dashboard id | URL |
-| --- | ------------ | --- |
-| staging | `db007be0-3dab-11f1-83bb-619bc5d820fb` | <https://opensearch-applogs.staging-shadowbox.cloud/_dashboards/app/dashboards#/view/db007be0-3dab-11f1-83bb-619bc5d820fb> |
-| prod | `b8e9a500-3db9-11f1-a30c-65753263afb6` | <https://opensearch-applogs.shadowbox.cloud/_dashboards/app/dashboards#/view/b8e9a500-3db9-11f1-a30c-65753263afb6> |
+Same dashboard id across envs: `db007be0-3dab-11f1-83bb-619bc5d820fb`
+
+| Env | URL |
+| --- | --- |
+| staging | <https://opensearch-applogs.staging-shadowbox.cloud/_dashboards/app/dashboards#/view/db007be0-3dab-11f1-83bb-619bc5d820fb> |
+| prod | <https://opensearch-applogs.shadowbox.cloud/_dashboards/app/dashboards#/view/db007be0-3dab-11f1-83bb-619bc5d820fb> |
 
 Staging is the demo/iteration target. Iterate on staging first, then export
 and import to prod when ready.
