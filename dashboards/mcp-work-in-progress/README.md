@@ -14,19 +14,54 @@ and import to prod when ready.
 
 ## Panels
 
-1. **MCP Tool Calls** — volume of `mcp.tool.execute` events over time.
-   Filter: `processType:mcpService AND eventName:"mcp.tool.execute"`.
-2. **MCP Tool Call Latency (p50 / p95 / p99)** — percentile latency of tool
-   executions. Filter: same as above, metric: `durationMs`.
-3. **MCP Service Heap Usage (global avg)** — avg used + total heap across all
-   instances. Filter: `processType:mcpService AND usedHeapSizeBytes:*`.
-4. **MCP Service Heap Usage by serviceId** — same, split per instance.
-5. **MCP Request Error Rate (% by statusClass)** — stacked-percentage bar of
-   `/mcp` HTTP requests by `statusClass` (success / client_error / server_error).
-   Filter: `processType:mcpService AND interServiceRoute:"/mcp" AND statusCode:*`.
-6. **Top 10 Applications by MCP Tool Calls** — `applicationId` terms on
-   `mcp.tool.execute` events.
-7. **Top 10 Users by MCP Tool Calls** — `userId` terms on same.
+### On-call row
+
+| Panel | Type | Query |
+|---|---|---|
+| Tool Errors | metric (count) | `processType:mcpService AND msg:"MCP tool completed with error"` |
+| Tool p95 Latency | metric (p95 of `durationMs`) | `processType:mcpService AND msg:"MCP tool completed" AND level:30` |
+| /mcp 5xx Count | metric (count) | `processType:mcpService AND interServiceRoute:"/mcp" AND statusCode >= 500` |
+| CRUD Failures | metric (count) | `isFromMcpOrigin:true AND msg:"crud request log line" AND NOT status:SUCCESS` |
+
+### Traffic
+
+| Panel | Type | Query |
+|---|---|---|
+| MCP Tool Calls (total) | metric (count) | `processType:mcpService AND msg:"MCP tool called"` |
+| MCP Tool Calls | histogram over time | `processType:mcpService AND msg:"MCP tool called"` |
+| MCP Tool Calls by applicationId (top 10) | horizontal bar | `processType:mcpService AND msg:"MCP tool called"` |
+| MCP Tool Calls by userId (top 10) | horizontal bar | `processType:mcpService AND msg:"MCP tool called"` |
+| MCP Tool Calls by userAgent (top 15) | horizontal bar | `processType:mcpService AND msg:"MCP tool called"` |
+| MCP Active Sessions over Time | line (cardinality of `oauthAccessTokenId`) | `processType:mcpService AND msg:"MCP tool called"` |
+
+### Performance
+
+| Panel | Type | Query |
+|---|---|---|
+| MCP Tool Latency — Success (p50/p95/p99) | line | `processType:mcpService AND msg:"MCP tool completed" AND level:30` |
+| MCP Tool Latency — Errors & Validation (p50/p95/p99) | line, split by msg type | `processType:mcpService` with filters split on `msg:"MCP tool completed with error"` and `msg:"MCP tool input validation failed"` |
+| MCP CRUD Downstream Latency Breakdown | stacked histogram | `isFromMcpOrigin:true AND msg:"crud request log line"` — avg of `aggregatedSpanDurationMs.*` sub-fields |
+| MCP Worker Queue Pressure (p95) | line | `isFromMcpOrigin:true AND msg:"crud request log line"` — p95 of `queueLength` and `workerChildQueueDurationMs` |
+| MCP Interactive Queue Blame (p95) | line | `isFromMcpOrigin:true AND msg:"crud request log line"` — p95 of `interactiveQueueingBlameMs` and `timeBlockingAnyInteractiveRequestMs` |
+| MCP Tool Call → CRUD Fan-out (fleet) | line, two series | `msg:"MCP tool called"` vs `isFromMcpOrigin:true AND msg:"crud request log line"` |
+
+### Errors
+
+| Panel | Type | Query |
+|---|---|---|
+| MCP Request Error Rate (% by statusClass) | stacked % histogram | `processType:mcpService AND interServiceRoute:"/mcp" AND statusCode >= 400` |
+| MCP /mcp Errors by statusCode | stacked histogram | `processType:mcpService AND interServiceRoute:"/mcp" AND statusCode >= 400` |
+| MCP CRUD Failures by modelClassName / apiName / action | data table | `msg:"crud request log line" AND isFromMcpOrigin:true AND NOT status:SUCCESS` |
+| MCP CRUD Failures over Time by modelClassName / action | line, split by model+action | same as above |
+| MCP CRUD Failure Status over Time | line, split by `status` | same as above |
+
+### Infrastructure
+
+| Panel | Type | Query |
+|---|---|---|
+| MCP Service Heap Usage (global avg) | line | `processType:mcpService AND usedHeapSizeBytes:*` |
+| MCP Service Heap Usage by serviceId | line, split by `serviceId` | same as above |
+| MCP Event Loop Utilization by serviceId | line, split by `serviceId` | same as above — avg of `eventLoopUtilization` |
 
 ## Expected query-bar usage
 
