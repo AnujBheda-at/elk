@@ -67,7 +67,7 @@ cd ~/h/source/hyperbase-worktree
 Then verify from this repo:
 
 ```bash
-python3 dashboards/bin/osd_common.py --selftest <env>
+python3 dashboards/scripts/osd_common.py --selftest <env>
 ```
 
 A green response means cookies are live and the saved-objects API is
@@ -101,7 +101,7 @@ the authoritative state.
 
 ## Builder library (`osd_builder.py`)
 
-For scripted dashboard creation or mutation, use `dashboards/bin/osd_builder.py`
+For scripted dashboard creation or mutation, use `dashboards/scripts/osd_builder.py`
 rather than hand-rolling boilerplate. It provides agg builders, params builders,
 vis state composers, and API helpers.
 
@@ -184,7 +184,7 @@ add_panels_to_dashboard(client, DASHBOARD_ID, [
 ### Export existing dashboard → local file
 
 ```bash
-python3 dashboards/bin/osd_export.py <env> <dashboard-id> dashboards/<slug>/
+python3 dashboards/scripts/osd_export.py <env> <dashboard-id> dashboards/<slug>/
 ```
 
 Writes `dashboards/<slug>/dashboard.ndjson` with the dashboard plus every
@@ -193,7 +193,7 @@ saved object it references (visualizations, searches, index-patterns).
 ### Diff local file vs live environment
 
 ```bash
-python3 dashboards/bin/osd_diff.py <env> dashboards/<slug>/dashboard.ndjson
+python3 dashboards/scripts/osd_diff.py <env> dashboards/<slug>/dashboard.ndjson
 ```
 
 Prints a unified diff. Read-only — safe against prod. The script parses
@@ -204,7 +204,7 @@ blobs.
 ### Push local file → live environment
 
 ```bash
-python3 dashboards/bin/osd_import.py <env> dashboards/<slug>/dashboard.ndjson
+python3 dashboards/scripts/osd_import.py <env> dashboards/<slug>/dashboard.ndjson
 # add --overwrite to replace existing objects
 ```
 

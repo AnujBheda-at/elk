@@ -6,8 +6,9 @@ visualizations they reference), version-controlled alongside the userscripts.
 ## Layout
 
     dashboards/
-    ├── bin/                         helper scripts (python3, no deps beyond stdlib)
+    ├── scripts/                     helper scripts (python3, no deps beyond stdlib)
     │   ├── osd_common.py            shared auth + HTTP client (OsdClient class)
+    │   ├── osd_builder.py           reusable viz + dashboard primitives
     │   ├── osd_export.py            GET dashboard + refs → NDJSON
     │   ├── osd_import.py            POST NDJSON → _import (overwrite off by default)
     │   └── osd_diff.py              diff local NDJSON vs live env (read-only)

@@ -59,14 +59,14 @@ To unblock:
 ## Sync commands
 
     # pull latest from staging into this file
-    python3 dashboards/bin/osd_export.py staging \
+    python3 dashboards/scripts/osd_export.py staging \
         db007be0-3dab-11f1-83bb-619bc5d820fb \
         dashboards/mcp-work-in-progress/
 
     # preflight: diff local vs staging
-    python3 dashboards/bin/osd_diff.py staging \
+    python3 dashboards/scripts/osd_diff.py staging \
         dashboards/mcp-work-in-progress/dashboard.ndjson
 
     # push local to staging (add --overwrite to replace live UI edits)
-    python3 dashboards/bin/osd_import.py staging \
+    python3 dashboards/scripts/osd_import.py staging \
         dashboards/mcp-work-in-progress/dashboard.ndjson
