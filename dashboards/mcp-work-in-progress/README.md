@@ -1,17 +1,30 @@
 # MCP (work in progress)
 
-WIP dashboard for observing the MCP service's tool-call traffic. Currently
-a single bar-chart panel of tool-call volume over time.
+WIP dashboard for observing the MCP service's tool-call traffic.
 
-- Source env: **staging** (`opensearch-applogs.staging-shadowbox.cloud`)
-- Dashboard id: `db007be0-3dab-11f1-83bb-619bc5d820fb`
-- Live URL:
-  <https://opensearch-applogs.staging-shadowbox.cloud/_dashboards/app/dashboards#/view/db007be0-3dab-11f1-83bb-619bc5d820fb>
+| Env | Dashboard id | URL |
+| --- | ------------ | --- |
+| staging | `db007be0-3dab-11f1-83bb-619bc5d820fb` | <https://opensearch-applogs.staging-shadowbox.cloud/_dashboards/app/dashboards#/view/db007be0-3dab-11f1-83bb-619bc5d820fb> |
+| prod | `b8e9a500-3db9-11f1-a30c-65753263afb6` | <https://opensearch-applogs.shadowbox.cloud/_dashboards/app/dashboards#/view/b8e9a500-3db9-11f1-a30c-65753263afb6> |
+
+Staging is the demo/iteration target. Iterate on staging first, then export
+and import to prod when ready.
 
 ## Panels
 
-1. **MCP Tool Calls** — volume of MCP `tools/call` events over time.
-   Filter: `processType:mcpService AND method:"tools/call"`.
+1. **MCP Tool Calls** — volume of `mcp.tool.execute` events over time.
+   Filter: `processType:mcpService AND eventName:"mcp.tool.execute"`.
+2. **MCP Tool Call Latency (p50 / p95 / p99)** — percentile latency of tool
+   executions. Filter: same as above, metric: `durationMs`.
+3. **MCP Service Heap Usage (global avg)** — avg used + total heap across all
+   instances. Filter: `processType:mcpService AND usedHeapSizeBytes:*`.
+4. **MCP Service Heap Usage by serviceId** — same, split per instance.
+5. **MCP Request Error Rate (% by statusClass)** — stacked-percentage bar of
+   `/mcp` HTTP requests by `statusClass` (success / client_error / server_error).
+   Filter: `processType:mcpService AND interServiceRoute:"/mcp" AND statusCode:*`.
+6. **Top 10 Applications by MCP Tool Calls** — `applicationId` terms on
+   `mcp.tool.execute` events.
+7. **Top 10 Users by MCP Tool Calls** — `userId` terms on same.
 
 ## Expected query-bar usage
 
