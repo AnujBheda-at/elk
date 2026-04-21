@@ -2,50 +2,6 @@
 
 A collection of Tampermonkey userscripts for tweaking the ELK/OpenSearch stack, plus version-controlled OpenSearch Dashboards saved objects.
 
-## Dashboards
-
-OpenSearch Dashboards saved objects exported as NDJSON and versioned under [`dashboards/`](dashboards/). Python helpers in [`dashboards/scripts/`](dashboards/scripts/) handle export, diff, import, and programmatic viz authoring against alpha / staging / prod.
-
-### MCP Dashboard
-
-Observability dashboard for the MCP service — traffic, latency, errors, CRUD behaviour, and infrastructure health.
-
-![MCP Dashboard](assets/mcp-dashboard.png)
-
-| Env | URL |
-| --- | --- |
-| prod | <https://opensearch-applogs.shadowbox.cloud/_dashboards/app/dashboards#/view/db007be0-3dab-11f1-83bb-619bc5d820fb> |
-| staging | <https://opensearch-applogs.staging-shadowbox.cloud/_dashboards/app/dashboards#/view/db007be0-3dab-11f1-83bb-619bc5d820fb> |
-
-**Sections:** on-call metrics row · Traffic (volume, top callers, active sessions) · Performance (latency by outcome, CRUD latency breakdown, queue pressure, fan-out ratio) · Errors (HTTP error rate, CRUD failures) · Infrastructure (heap, event loop utilization).
-
-### Working with dashboards
-
-Auth reuses the encrypted cookie cache from the hyperbase `opensearch_query` CLI — log in once per env, then the scripts pick up the cookies:
-
-```bash
-cd ~/h/source/hyperbase
-./bin/opensearch_query --env <alpha|staging|prod> login
-```
-
-Common operations:
-
-```bash
-# Pull latest dashboard state from prod into git
-python3 dashboards/scripts/osd_export.py prod <dashboard-id> dashboards/<slug>/
-
-# Preview what would change before importing
-python3 dashboards/scripts/osd_diff.py staging dashboards/<slug>/dashboard.ndjson
-
-# Push local file to an env
-python3 dashboards/scripts/osd_import.py staging dashboards/<slug>/dashboard.ndjson
-
-# Test auth
-python3 dashboards/scripts/osd_common.py --selftest staging
-```
-
-Authoring sharp edges (indexRefName wiring, stringified JSON, aggregatability) are captured in the [`opensearch-dashboard-sync` Claude skill](.claude/skills/opensearch-dashboard-sync/).
-
 ## Scripts
 
 Tampermonkey userscripts live in [`tweaks/`](tweaks/).
@@ -149,3 +105,24 @@ Column operations go through `location.hash` (the URL parameter OpenSearch Disco
 - `https://opensearch-applogs.staging-shadowbox.cloud/*`
 
 ![Field search modal](assets/opensearch-field-search.png)
+
+---
+
+## Dashboards
+
+OpenSearch Dashboards saved objects exported as NDJSON and versioned under [`dashboards/`](dashboards/). Python helpers in [`dashboards/scripts/`](dashboards/scripts/) handle export, diff, and import against alpha / staging / prod.
+
+### MCP Dashboard
+
+Observability dashboard for the MCP service — traffic, latency, errors, CRUD behaviour, and infrastructure health.
+
+![MCP Dashboard](assets/mcp-dashboard.png)
+
+| Env | URL |
+| --- | --- |
+| prod | <https://opensearch-applogs.shadowbox.cloud/_dashboards/app/dashboards#/view/db007be0-3dab-11f1-83bb-619bc5d820fb> |
+| staging | <https://opensearch-applogs.staging-shadowbox.cloud/_dashboards/app/dashboards#/view/db007be0-3dab-11f1-83bb-619bc5d820fb> |
+
+**Sections:** on-call metrics row · Traffic (volume, top callers, active sessions) · Performance (latency by outcome, CRUD latency breakdown, queue pressure, fan-out ratio) · Errors (HTTP error rate, CRUD failures) · Infrastructure (heap, event loop utilization).
+
+See [`dashboards/README.md`](dashboards/README.md) for sync commands and authoring notes.
