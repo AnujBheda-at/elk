@@ -13,6 +13,47 @@ Do **not** use this skill for log-data queries — those go through the
 `opensearch-query` skill (hyperbase-worktree). This skill is about the
 *dashboard layer*, not the underlying logs.
 
+## Discovering fields: read the source before querying
+
+Before building a new visualization, read the relevant source code in
+`~/h/source/hyperbase` to understand what fields are actually logged and how
+they're named. This is faster and more reliable than guessing field names from
+sample documents.
+
+### Where to look
+
+- **Log field definitions** — `client_server_shared/h/generators/log_field_definitions.tsx`
+  and `.yaml` are the canonical registry of every structured log field: name, type,
+  `isAggregatable`. Check here first to confirm a field exists and whether it's
+  `keyword` / `number` / `boolean` before writing an agg.
+
+- **Per-feature log lines** — search for the log message string in the codebase
+  to find the exact call site, then read the surrounding code to see which fields
+  are set on that log line. For example:
+  ```bash
+  grep -r '"crud request log line"' ~/h/source/hyperbase --include='*.ts' --include='*.tsx' -l
+  grep -r '"mcp.tool.execute"' ~/h/source/hyperbase --include='*.ts' --include='*.tsx' -l
+  ```
+
+- **MCP-specific logging** — `mcp_service/` subtree. Requester code:
+  `mcp_service/internal/requester/mcp_origin_crud_requester.tsx` shows which
+  fields are span tags (Datadog only) vs structured log fields (applogs).
+
+- **Worker CRUD log lines** — `server/worker/` subtree. The `crud request log line`
+  entry is written here and carries fields like `isFromMcpOrigin`, `status`,
+  `modelClassName`, `action`, `aggregatedSpanDurationMs.*`,
+  `interactiveQueueingBlameMs`, `timeBlockingAnyInteractiveRequestMs`.
+
+### Workflow
+
+1. Read source → identify candidate field names and types
+2. Verify aggregatability with a raw agg query via `opensearch_query --env staging raw`
+3. Build the visualization
+
+Skipping step 1 leads to building against fields that don't exist
+(`knownMcpClientName`), are text-mapped and non-aggregatable (`toolName`,
+`msg`), or are span tags that never reach applogs.
+
 ## Prerequisite: auth
 
 All scripts reuse encrypted cookies cached by the hyperbase-worktree
