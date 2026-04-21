@@ -10,7 +10,7 @@ Programmatic creation and editing of OpenSearch Dashboards saved objects
 kept in sync with NDJSON files in `dashboards/` in this repo.
 
 Do **not** use this skill for log-data queries — those go through the
-`opensearch-query` skill (hyperbase-worktree). This skill is about the
+`opensearch-query` skill (hyperbase). This skill is about the
 *dashboard layer*, not the underlying logs.
 
 ## Discovering fields: read the source before querying
@@ -56,11 +56,11 @@ Skipping step 1 leads to building against fields that don't exist
 
 ## Prerequisite: auth
 
-All scripts reuse encrypted cookies cached by the hyperbase-worktree
+All scripts reuse encrypted cookies cached by the hyperbase
 `opensearch_query` CLI. Log in once per env (cookies last ~24h):
 
 ```bash
-cd ~/h/source/hyperbase-worktree
+cd ~/h/source/hyperbase
 ./bin/opensearch_query --env <alpha|staging|prod> login
 ```
 
@@ -273,7 +273,7 @@ object without a server error.
 ### 3. Index-pattern ID is stable across envs
 
 `airtable-applogs-index` is the saved-object id in alpha, staging, **and**
-prod. Source: `hyperbase-worktree/bin/_opensearch_query/cli.py:234`. This
+prod. Source: `hyperbase/bin/_opensearch_query/cli.py:234`. This
 means an NDJSON exported from staging can be imported into alpha or prod
 without rewriting references.
 
@@ -298,7 +298,7 @@ If the raw query returns a 400 with "Text fields are not optimised for
 operations that require per-document field data", the mapping is wrong.
 **Do not** try to work around it with `fielddata=true` — that's expensive
 and almost never the right call. The correct fix is upstream in
-`hyperbase-worktree/client_server_shared/h/generators/log_field_definitions.tsx`:
+`hyperbase/client_server_shared/h/generators/log_field_definitions.tsx`:
 change the field from `LogFieldType.TEXT` to
 `LogFieldType.KEYWORD, isAggregatable: true`. Also update
 `log_field_definitions.yaml` to match, then run

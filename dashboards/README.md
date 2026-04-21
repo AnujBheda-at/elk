@@ -20,10 +20,10 @@ visualizations they reference), version-controlled alongside the userscripts.
 
 ## Prerequisite: auth
 
-The scripts reuse the encrypted cookie cache from the hyperbase-worktree
+The scripts reuse the encrypted cookie cache from the hyperbase
 `opensearch_query` CLI. Log in once per env (cookies last ~24h):
 
-    cd ~/h/source/hyperbase-worktree
+    cd ~/h/source/hyperbase
     ./bin/opensearch_query --env staging login   # or --env prod / --env alpha
 
 Then run scripts from this repo root.
@@ -54,7 +54,7 @@ Selftest auth without doing anything else:
 
 All owned dashboards reference the applogs index pattern by its saved-object
 id `airtable-applogs-index`. This id is **identical across alpha, staging,
-and prod** (hardcoded in `hyperbase-worktree/bin/_opensearch_query/cli.py`),
+and prod** (hardcoded in `hyperbase/bin/_opensearch_query/cli.py`),
 so a dashboard NDJSON exported from one env imports cleanly into any other.
 
 ## Skill

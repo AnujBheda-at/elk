@@ -41,7 +41,7 @@ Type a filter into the dashboard's top query bar to scope every panel:
 The original intent was a stacked bar chart split by `toolName`. That is
 blocked by an upstream mapping issue: `toolName` is registered as a
 `text`-typed log field in
-`hyperbase-worktree/client_server_shared/h/generators/log_field_definitions.tsx`
+`hyperbase/client_server_shared/h/generators/log_field_definitions.tsx`
 and therefore is not aggregatable.
 
 To unblock:

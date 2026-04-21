@@ -30,7 +30,7 @@ import urllib.request
 import uuid
 from pathlib import Path
 
-HYPERBASE_BIN = Path.home() / "h" / "source" / "hyperbase-worktree" / "bin"
+HYPERBASE_BIN = Path.home() / "h" / "source" / "hyperbase" / "bin"
 sys.path.insert(0, str(HYPERBASE_BIN))
 from _shared_chrome_auth import load_cookies  # noqa: E402
 

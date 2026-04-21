@@ -21,10 +21,10 @@ Observability dashboard for the MCP service — traffic, latency, errors, CRUD b
 
 ### Working with dashboards
 
-Auth reuses the encrypted cookie cache from the hyperbase-worktree `opensearch_query` CLI — log in once per env, then the scripts pick up the cookies:
+Auth reuses the encrypted cookie cache from the hyperbase `opensearch_query` CLI — log in once per env, then the scripts pick up the cookies:
 
 ```bash
-cd ~/h/source/hyperbase-worktree
+cd ~/h/source/hyperbase
 ./bin/opensearch_query --env <alpha|staging|prod> login
 ```
 
