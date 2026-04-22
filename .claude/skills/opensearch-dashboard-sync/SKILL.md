@@ -73,11 +73,22 @@ python3 dashboards/scripts/osd_common.py --selftest <env>
 A green response means cookies are live and the saved-objects API is
 reachable.
 
-## Updating an existing visualization (new session rule)
+## Session start rule: sync from prod immediately
 
-**Before mutating any existing saved object in a new session, always GET it
-from prod first.** The NDJSON in git may be stale and the live object may have
-drifted (UI edits, prior session changes not yet committed, etc.).
+**As soon as you know which dashboard you will work on, export it from prod
+before doing anything else** — before exploring panels, before reading the
+NDJSON, before any mutation. Don't wait until you're about to write.
+
+```bash
+python3 dashboards/scripts/osd_export.py prod <dashboard-id> dashboards/<slug>/
+```
+
+The NDJSON in git may be stale: UI edits, prior-session changes not yet
+committed, drift between staging and prod. Prod is always the source of truth
+for the initial read.
+
+When making individual saved-object mutations (GET → mutate → PUT), also pull
+from prod:
 
 ```python
 # Correct pattern — pull live state, mutate, PUT back
@@ -94,10 +105,33 @@ client.put(f"/api/saved_objects/visualization/{viz_id}", {
 })
 ```
 
-Always use `env="prod"` as the source of truth for existing objects. After
-mutating, export from prod, diff, and commit. Never reconstruct a viz from the
-NDJSON alone when the intent is to update an existing one — the live object has
-the authoritative state.
+## Pushing changes: staging first, prod only with confirmation
+
+**All writes go to staging first.** After verifying in staging, explicitly ask
+the user before pushing to prod.
+
+```
+# 1. Push to staging and verify in the UI
+python3 dashboards/scripts/osd_import.py staging dashboards/<slug>/dashboard.ndjson --overwrite
+
+# 2. Ask the user: "Looks good on staging — ok to push to prod?"
+
+# 3. Only after confirmation:
+python3 dashboards/scripts/osd_import.py prod dashboards/<slug>/dashboard.ndjson --overwrite
+```
+
+The same applies to programmatic mutations via `OsdClient`: target `staging`
+for the initial write, show the user what changed, then ask before repeating
+against `prod`.
+
+After the prod push, export from prod to capture the final state:
+
+```bash
+python3 dashboards/scripts/osd_export.py prod <dashboard-id> dashboards/<slug>/
+```
+
+Never reconstruct a viz from the NDJSON alone when the intent is to update an
+existing one — the live object has the authoritative state.
 
 ## Builder library (`osd_builder.py`)
 
@@ -392,7 +426,7 @@ This is what we did the first time to produce `dashboards/mcp-work-in-progress/`
    `indexRefName` + `references` wired correctly (see sharp edge #1).
 4. Agent `GET` the dashboard again, appended a panel to the parsed
    `panelsJSON`, added a matching entry to `references`, and `PUT` it back.
-5. `osd_export.py staging <id> dashboards/mcp-work-in-progress/` captured
+5. `osd_export.py prod <id> dashboards/mcp-work-in-progress/` captured
    the final state to NDJSON.
 6. Commit the NDJSON + a hand-written `README.md` describing intent,
    deferred work, and filter conventions.

@@ -32,7 +32,7 @@ and import to prod when ready.
 | MCP Tool Calls by applicationId (top 10) | horizontal bar | `processType:mcpService AND msg:"MCP tool called"` |
 | MCP Tool Calls by userId (top 10) | horizontal bar | `processType:mcpService AND msg:"MCP tool called"` |
 | MCP Tool Calls by userAgent (top 15) | horizontal bar | `processType:mcpService AND msg:"MCP tool called"` |
-| MCP Active Sessions over Time | line (cardinality of `oauthAccessTokenId`) | `processType:mcpService AND msg:"MCP tool called"` |
+| MCP Active OAuth Sessions over Time | line (cardinality of `oauthAccessTokenId`) | `processType:mcpService AND msg:"MCP auth middleware: authentication successful"` |
 
 ### Performance
 
@@ -41,8 +41,9 @@ and import to prod when ready.
 | MCP Tool Latency — Success (p50/p95/p99) | line | `processType:mcpService AND msg:"MCP tool completed" AND level:30` |
 | MCP Tool Latency — Errors & Validation (p50/p95/p99) | line, split by msg type | `processType:mcpService` with filters split on `msg:"MCP tool completed with error"` and `msg:"MCP tool input validation failed"` |
 | MCP CRUD Downstream Latency Breakdown | stacked histogram | `isFromMcpOrigin:true AND msg:"crud request log line"` — avg of `aggregatedSpanDurationMs.*` sub-fields |
-| MCP Worker Queue Pressure (p95) | line | `isFromMcpOrigin:true AND msg:"crud request log line"` — p95 of `queueLength` and `workerChildQueueDurationMs` |
-| MCP Interactive Queue Blame (p95) | line | `isFromMcpOrigin:true AND msg:"crud request log line"` — p95 of `interactiveQueueingBlameMs` and `timeBlockingAnyInteractiveRequestMs` |
+| MCP CRUD Primary Processing Duration (p50/p95/p99) | line | `isFromMcpOrigin:true AND msg:"crud request log line"` — percentiles of `primaryProcessingDurationMs` |
+| MCP Worker Queue Pressure (p95/p99) | line | `isFromMcpOrigin:true AND msg:"crud request log line"` — p95+p99 of `queueLength` and `workerChildQueueDurationMs` |
+| MCP Interactive Queue Blame (p95/p99) | line | `isFromMcpOrigin:true AND msg:"crud request log line"` — p95+p99 of `interactiveQueueingBlameMs` and `timeBlockingAnyInteractiveRequestMs` |
 | MCP Tool Call → CRUD Fan-out (fleet) | line, two series | `msg:"MCP tool called"` vs `isFromMcpOrigin:true AND msg:"crud request log line"` |
 
 ### Errors
@@ -51,7 +52,7 @@ and import to prod when ready.
 |---|---|---|
 | MCP Request Error Rate (% by statusClass) | stacked % histogram | `processType:mcpService AND interServiceRoute:"/mcp" AND statusCode >= 400` |
 | MCP /mcp Errors by statusCode | stacked histogram | `processType:mcpService AND interServiceRoute:"/mcp" AND statusCode >= 400` |
-| MCP CRUD Failures by modelClassName / apiName / action | data table | `msg:"crud request log line" AND isFromMcpOrigin:true AND NOT status:SUCCESS` |
+| MCP CRUD Failures by modelClassName / apiName / action | data table | `isFromMcpOrigin:true AND msg:"crud request log line" AND NOT status:SUCCESS` |
 | MCP CRUD Failures over Time by modelClassName / action | line, split by model+action | same as above |
 | MCP CRUD Failure Status over Time | line, split by `status` | same as above |
 | MCP Public API Errors by errorType (top 10) | horizontal bar | `processType:mcpService AND msg:"Public API request returned non-200"` |
@@ -101,8 +102,8 @@ To unblock:
 
 ## Sync commands
 
-    # pull latest from staging into this file
-    python3 dashboards/scripts/osd_export.py staging \
+    # pull latest from prod into this file (always sync from prod at session start)
+    python3 dashboards/scripts/osd_export.py prod \
         db007be0-3dab-11f1-83bb-619bc5d820fb \
         dashboards/mcp-work-in-progress/
 
@@ -110,6 +111,10 @@ To unblock:
     python3 dashboards/scripts/osd_diff.py staging \
         dashboards/mcp-work-in-progress/dashboard.ndjson
 
-    # push local to staging (add --overwrite to replace live UI edits)
+    # push to staging first; verify in UI; then ask user before pushing to prod
     python3 dashboards/scripts/osd_import.py staging \
-        dashboards/mcp-work-in-progress/dashboard.ndjson
+        dashboards/mcp-work-in-progress/dashboard.ndjson --overwrite
+
+    # push to prod only after explicit user confirmation
+    python3 dashboards/scripts/osd_import.py prod \
+        dashboards/mcp-work-in-progress/dashboard.ndjson --overwrite
