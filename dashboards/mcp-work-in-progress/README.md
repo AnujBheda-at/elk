@@ -54,6 +54,14 @@ and import to prod when ready.
 | MCP CRUD Failures by modelClassName / apiName / action | data table | `msg:"crud request log line" AND isFromMcpOrigin:true AND NOT status:SUCCESS` |
 | MCP CRUD Failures over Time by modelClassName / action | line, split by model+action | same as above |
 | MCP CRUD Failure Status over Time | line, split by `status` | same as above |
+| MCP Public API Errors by errorType (top 10) | horizontal bar | `processType:mcpService AND msg:"Public API request returned non-200"` |
+
+## TODOs
+
+- **Public API `toolName` context** — `public_api_fetcher.tsx` uses a fresh logger instead of the child logger from `_registerTool`, so `toolName`, `applicationId`, `userId` are absent from `"Public API request returned non-200"` logs. Fix: pass the child logger in. Once deployed, upgrade the `errorType` bar to a two-level `errorType × toolName` breakdown.
+  - Manual workaround: both logs share the same `requestId` — search `requestId:<id>` in Discover to find the tool that caused a specific public API error.
+
+- **Private API error extraction** — the `mcp_origin_crud_requester` returns non-success responses as a `{err}` Result without logging a structured error line from the MCP service side. The worker-side `crud request log line` is the closest equivalent (captured in the CRUD failures panels). Consider adding a structured log in the private requester's error path with `modelClassName`, `action`, `statusCode`, and error body, similar to what `public_api_fetcher.tsx` does.
 
 ### Infrastructure
 
