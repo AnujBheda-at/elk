@@ -190,16 +190,110 @@ Update the factory instead so the next caller benefits.
 | Vis state | `line_vis_state`, `histogram_vis_state`, `horizontal_bar_vis_state`, `markdown_vis_state` |
 | API helpers | `create_viz`, `create_heading`, `add_panels_to_dashboard` |
 
-### Section headings with descriptions
+### Section headings
 
-Use `create_heading(client, label, description)` to add a Markdown viz as a
-section header. The `description` renders as a second line. Use `##` for main
-sections, `###` for sub-sections — just pass the full markdown string:
+Do **not** use `create_heading()` — it sets the viz title to `_heading_{slug}` which
+appears as an ugly panel title bar in the UI. Instead, create the heading viz directly
+with a clean title and suppress the panel title bar via `embeddableConfig`:
 
 ```python
-# sub-heading: pass raw markdown instead of using create_heading
-state = markdown_vis_state("_heading_sub", "### Sub-section title\nExplanation here.")
+# Create the heading viz with a clean title
+viz_id = str(uuid.uuid4())
+vis_state = {
+    "title": "Volume",
+    "type": "markdown",
+    "aggs": [],
+    "params": {"fontSize": 14, "openLinksInNewTab": False, "markdown": "## Volume"},
+}
+body = {
+    "attributes": {
+        "title": "Volume",
+        "visState": json.dumps(vis_state),
+        "uiStateJSON": "{}",
+        "version": 1,
+        "kibanaSavedObjectMeta": {
+            "searchSourceJSON": json.dumps({"query": {"query": "", "language": "kuery"}, "filter": []})
+        },
+    },
+    "references": [],
+    "migrationVersion": {"visualization": "7.10.0"},
+}
+client.post(f"/api/saved_objects/visualization/{viz_id}", body)
+
+# Wire into the dashboard panel with hidePanelTitles — hides the title bar for this panel only
+panels.append({
+    "version": "7.10.0", "type": "visualization",
+    "gridData": {"x": 0, "y": 0, "w": 48, "h": 3, "i": "h_vol"},
+    "panelIndex": "h_vol",
+    "embeddableConfig": {"hidePanelTitles": True},  # ← key: suppresses the "_heading_" title bar
+    "panelRefName": "h_vol",
+})
 ```
+
+### Log scale for latency / spike charts
+
+For time-series charts where occasional spikes compress the baseline, use log scale
+on the value axis. Set it before calling `create_viz`:
+
+```python
+state = line_vis_state("Request Latency (p50 / p95 / p99)", aggs, y_title="ms")
+state["params"]["valueAxes"][0]["scale"]["type"] = "log"  # ← log scale for perf charts
+```
+
+To patch an existing viz:
+```python
+resp = client.get(f"/api/saved_objects/visualization/{viz_id}")
+attrs, refs = resp["body"]["attributes"], resp["body"]["references"]
+vs = json.loads(attrs["visState"])
+vs["params"]["valueAxes"][0]["scale"]["type"] = "log"
+attrs["visState"] = json.dumps(vs)
+client.put(f"/api/saved_objects/visualization/{viz_id}", {"attributes": attrs, "references": refs})
+```
+
+### Dashboard filter pills
+
+Filter pills are the toggleable chips in the filter bar (not the query bar). They're stored
+in the `filter` array of the dashboard's `searchSourceJSON`, not in `query.query`.
+Use them for default scope filters that users should be able to temporarily disable.
+
+```python
+ROUTE_FILTER = [{
+    "meta": {
+        "index": "airtable-applogs-index",   # must match SAVED_OBJECTS_INDEX_PATTERN_ID
+        "negate": False,
+        "disabled": False,
+        "alias": None,                        # display label — None shows field:value
+        "type": "phrase",
+        "key": "routePattern",
+        "params": {"query": "/executeAiQueryStreaming"},
+        "value": "/executeAiQueryStreaming",
+    },
+    "query": {"match_phrase": {"routePattern": "/executeAiQueryStreaming"}},
+    "$state": {"store": "appState"},
+}]
+
+# Wire into the dashboard searchSourceJSON when creating:
+ssj = {
+    "query": {"language": "kuery", "query": ""},  # leave query bar empty
+    "filter": ROUTE_FILTER,
+    "highlightAll": True,
+    "version": True,
+}
+
+# Or patch an existing dashboard:
+resp = client.get(f"/api/saved_objects/dashboard/{DASHBOARD_ID}")
+attrs = resp["body"]["attributes"]
+ssj = json.loads(attrs["kibanaSavedObjectMeta"]["searchSourceJSON"])
+ssj["filter"] = ROUTE_FILTER          # replaces all existing filter pills
+ssj["query"] = {"language": "kuery", "query": ""}   # clear query bar if moving filter there
+attrs["kibanaSavedObjectMeta"]["searchSourceJSON"] = json.dumps(ssj)
+client.put(f"/api/saved_objects/dashboard/{DASHBOARD_ID}",
+           {"attributes": attrs, "references": resp["body"]["references"]})
+```
+
+Key distinctions:
+- `query.query` (query bar) — free-text, cannot be toggled off without clearing; good for ad-hoc narrowing
+- `filter[]` (filter pills) — structured, toggleable, negatable, pinnable; right choice for default scope filters
 
 ### Adding panels to an existing dashboard
 
